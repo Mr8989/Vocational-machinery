@@ -94,3 +94,16 @@ export const login = async (req, res) => {
         res.status(500).json({message:"Internal server error", error});
     }
 }
+
+export const protect = async( req, res) => {
+    res.status(200).json({
+        success: true,
+        user: {
+        id:req.user._id,
+        username: req.user.username,
+        email:req.user.email,
+        role:req.user.role,
+        createdAt: req.user.createdAt
+        }
+    })
+}

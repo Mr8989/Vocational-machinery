@@ -1,7 +1,7 @@
 import React from "react"
 import { Link } from "react-router-dom"
 import { useAuthStore } from "../store/useAuthStore"
-import { Video , Lock, LogOut, UserPlus, LogIn, Briefcase} from "lucide-react"
+import { Video , Lock, LogOut, UserPlus, LogIn, Briefcase, Wallet} from "lucide-react"
 
 
 function Navbar() {
@@ -58,13 +58,20 @@ function Navbar() {
                 <span className="hidden sm:inline">Job Application</span>
               </Link>
             )}
+            <Link to={"/payment"}
+            className="bg-emerald-700 hover:bg-emerald-600 text-white py-2 px-4
+            rounded-md flex items-center transition duration-300 ease-in-out"
+            >
+            <Wallet className="inline-block mr-1" size={18}/>
+            <span className="hidden sm:inline">Payment</span>
+            </Link>
             {isInstructor && (
               <Link
                 className="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1 rounded-md font-medium
               transition duration-300 ease-in-out flex items-center"
                 to={"/secret-instructor"}
               >
-                <Lock className="inline-blockmr-1" size={18} />
+                <Lock className="inline-block mr-1" size={18} />
                 <span className="hidden sm:inline">Dashboard</span>
               </Link>
             )}

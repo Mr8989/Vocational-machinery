@@ -10,6 +10,7 @@ import Training from "./components/Training";
 import LoadingSpinner from "./components/LoadingSpinner"
 import InstructorPage from "./components/InstructorPage";
 import ApplicationForms from "./components/ApplicationForms";
+import PaymentGate from "./Pages/PaymentGate";
 
 
 function App() {
@@ -27,7 +28,8 @@ function App() {
       <div className="relative z-50 pt-20">
         <Navbar />
         <Routes>
-          <Route path="/" element={!user? <LoginPage/> : <Home />} />
+          <Route path="/payment" element={<PaymentGate/>}/>
+          <Route path="/" element={<Home />} />
           <Route path="/Signup" element={!user ? <Signup /> : <Navigate to='/'/>} />
           <Route path="/Login" element={!user ?  <LoginPage /> : <Navigate to='/'/>} />
           <Route path="/training" element={<Training/>}/>
