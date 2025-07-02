@@ -1,20 +1,26 @@
-import React from 'react'
-import {motion} from "framer-motion"
+import React, { useState } from "react"; // Import useState
+import { motion } from "framer-motion";
+import { useApplicationStore } from "../stores/useApplicationStore"; // Adjust path as necessary
+// Import icons from lucide-react (or your preferred icon library)
+import { Upload, X, Loader, PlusCircle, FileText } from "lucide-react";
 
 function ApplicationForms() {
-
+  // Destructure createApplication and loading from the Zustand store
   const { createApplication, loading } = useApplicationStore();
 
   const [formData, setFormData] = useState({
+    jobPostingId: "", // NEW: Field to link application to a job posting
     fullName: "",
     email: "",
     phone: "",
-    experienceYears: "",
+    experienceYears: "", // Renamed from experienceYears for clarity with type="number"
+    skillsInput: "", // NEW: Input for comma-separated skills
     coverLetter: "",
-    cvFile: null, // New state for CV file
+    cvFile: null, // State for CV file
   });
 
   const [errors, setErrors] = useState({});
+  const [submissionSuccess, setSubmissionSuccess] = useState(false); // State for success message
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,12 +32,13 @@ function ApplicationForms() {
     if (errors[name]) {
       setErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
     }
+    // Reset success message on any change
+    setSubmissionSuccess(false);
   };
 
   const handleCvChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type (e.g., PDF, DOCX)
       const allowedTypes = [
         "application/pdf",
         "application/msword",
@@ -42,16 +49,17 @@ function ApplicationForms() {
           ...errors,
           cvFile: "Please select a valid CV file (PDF, DOC, DOCX).",
         });
+        setFormData((prevData) => ({ ...prevData, cvFile: null })); // Clear invalid file
         return;
       }
 
-      // Validate file size (e.g., 5MB limit for CVs)
       const maxSize = 5 * 1024 * 1024; // 5 MB
       if (file.size > maxSize) {
         setErrors({
           ...errors,
           cvFile: `File size must be less than ${formatFileSize(maxSize)}.`,
         });
+        setFormData((prevData) => ({ ...prevData, cvFile: null })); // Clear oversized file
         return;
       }
 
@@ -59,9 +67,7 @@ function ApplicationForms() {
         ...prevData,
         cvFile: file,
       }));
-      if (errors.cvFile) {
-        setErrors((prevErrors) => ({ ...prevErrors, cvFile: "" }));
-      }
+      setErrors((prevErrors) => ({ ...prevErrors, cvFile: "" })); // Clear error if valid
     } else {
       setFormData((prevData) => ({
         ...prevData,
@@ -72,6 +78,7 @@ function ApplicationForms() {
         cvFile: "CV file is required.",
       }));
     }
+    setSubmissionSuccess(false); // Reset success message
   };
 
   const removeCv = () => {
@@ -83,12 +90,15 @@ function ApplicationForms() {
     if (fileInput) fileInput.value = ""; // Clear the file input visually
     setErrors((prevErrors) => ({
       ...prevErrors,
-      cvFile: "CV file is required.",
-    })); // Re-add required error
+      cvFile: "CV file is required.", // Re-add required error
+    }));
   };
 
   const validateForm = () => {
     let newErrors = {};
+    if (!formData.jobPostingId.trim()) {
+      newErrors.jobPostingId = "Job Posting ID is required.";
+    }
     if (!formData.fullName.trim()) {
       newErrors.fullName = "Full Name is required.";
     }
@@ -100,16 +110,20 @@ function ApplicationForms() {
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required.";
     }
-    if (formData.experienceYears === "" || formData.experienceYears < 0) {
-      // Check for empty string or negative
+    if (
+      formData.experienceYears === "" ||
+      parseInt(formData.experienceYears) < 0
+    ) {
       newErrors.experienceYears =
         "Years of experience must be a non-negative number.";
+    }
+    if (!formData.skillsInput.trim()) {
+      newErrors.skillsInput = "Skills are required.";
     }
     if (!formData.coverLetter.trim()) {
       newErrors.coverLetter = "Cover letter is required.";
     }
     if (!formData.cvFile) {
-      // Check if CV file is present
       newErrors.cvFile = "CV file is required.";
     }
     setErrors(newErrors);
@@ -118,18 +132,37 @@ function ApplicationForms() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmissionSuccess(false); // Clear previous success message
     if (!validateForm()) {
       return;
     }
 
     try {
-      await createApplication(formData);
+      // Prepare skills array: combine skillsInput and experienceYears
+      const skillsArray = formData.skillsInput
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean); // Split, trim, and remove empty strings
+
+      if (formData.experienceYears !== "") {
+        skillsArray.push(`Years of Experience: ${formData.experienceYears}`);
+      }
+
+      await createApplication({
+        jobPostingId: formData.jobPostingId, // Pass the new jobPostingId
+        coverLetter: formData.coverLetter,
+        skills: skillsArray, // Pass the constructed skills array
+        cvFile: formData.cvFile,
+      });
+
       // Reset form after successful submission
       setFormData({
+        jobPostingId: "",
         fullName: "",
         email: "",
         phone: "",
         experienceYears: "",
+        skillsInput: "",
         coverLetter: "",
         cvFile: null,
       });
@@ -137,9 +170,10 @@ function ApplicationForms() {
       // Clear the file input visually after successful submission
       const fileInput = document.getElementById("cvFile");
       if (fileInput) fileInput.value = "";
+      setSubmissionSuccess(true); // Set success message
     } catch (error) {
       console.error("Error submitting application:", error.message);
-      // You might want to set a general form error here
+      // You might want to set a general form error here, e.g., setErrors({ general: error.message });
     }
   };
 
@@ -148,13 +182,13 @@ function ApplicationForms() {
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + "" + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center p-4">
       <motion.div
-        className="bg-gray-800 shadow-lg rounded-lg p-8 max-w-xl w-full mx-auto"
+        className="bg-gray-800 shadow-lg rounded-lg p-8 max-w-xl w-full mx-auto border border-emerald-700"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
@@ -163,7 +197,41 @@ function ApplicationForms() {
           Apply for Training
         </h2>
 
+        {submissionSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-green-600 text-white p-3 rounded-md mb-4 text-center"
+          >
+            Application submitted successfully!
+          </motion.div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Job Posting ID */}
+          <div>
+            <label
+              htmlFor="jobPostingId"
+              className="block text-sm font-medium text-gray-300"
+            >
+              Job Posting ID
+            </label>
+            <input
+              type="text"
+              id="jobPostingId"
+              name="jobPostingId"
+              value={formData.jobPostingId}
+              onChange={handleChange}
+              className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3
+                text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              placeholder="e.g., 60d5ec49f8c6b7001c87a5a3"
+              required
+            />
+            {errors.jobPostingId && (
+              <p className="mt-1 text-sm text-red-400">{errors.jobPostingId}</p>
+            )}
+          </div>
+
           {/* Full Name */}
           <div>
             <label
@@ -179,7 +247,7 @@ function ApplicationForms() {
               value={formData.fullName}
               onChange={handleChange}
               className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3
-            text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Enter your full name"
               required
             />
@@ -203,7 +271,7 @@ function ApplicationForms() {
               value={formData.email}
               onChange={handleChange}
               className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3
-            text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Enter your email"
               required
             />
@@ -227,7 +295,7 @@ function ApplicationForms() {
               value={formData.phone}
               onChange={handleChange}
               className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3
-            text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Enter your phone number"
               required
             />
@@ -252,7 +320,7 @@ function ApplicationForms() {
               onChange={handleChange}
               min="0"
               className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3
-            text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="e.g., 5"
               required
             />
@@ -260,6 +328,30 @@ function ApplicationForms() {
               <p className="mt-1 text-sm text-red-400">
                 {errors.experienceYears}
               </p>
+            )}
+          </div>
+
+          {/* Skills Input */}
+          <div>
+            <label
+              htmlFor="skillsInput"
+              className="block text-sm font-medium text-gray-300"
+            >
+              Skills (comma-separated)
+            </label>
+            <input
+              type="text"
+              id="skillsInput"
+              name="skillsInput"
+              value={formData.skillsInput}
+              onChange={handleChange}
+              className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3
+                text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              placeholder="e.g., Forklift Operation, Excavation, Welding"
+              required
+            />
+            {errors.skillsInput && (
+              <p className="mt-1 text-sm text-red-400">{errors.skillsInput}</p>
             )}
           </div>
 
@@ -278,7 +370,7 @@ function ApplicationForms() {
               onChange={handleChange}
               rows="5"
               className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3
-            text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Tell us about your interest and qualifications..."
               required
             />
@@ -287,7 +379,7 @@ function ApplicationForms() {
             )}
           </div>
 
-          {/* CV Upload Field (NEW) */}
+          {/* CV Upload Field */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Upload CV *
@@ -321,8 +413,8 @@ function ApplicationForms() {
               <div className="bg-gray-700 rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <DocumentIcon className="h-8 w-8 text-emerald-400" />{" "}
-                    {/* Generic document icon */}
+                    <FileText className="h-8 w-8 text-emerald-400" />{" "}
+                    {/* Replaced DocumentIcon with FileText from lucide-react */}
                     <div>
                       <p className="text-white font-medium ">
                         {formData.cvFile.name}
@@ -376,17 +468,5 @@ function ApplicationForms() {
     </div>
   );
 }
-///Simple SVG icon for documents
-const DocumentIcon = ({ className }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    className={className}
-  >
-    <path fillRule="evenodd" d="M11.828 2.25c-.139 0-.272.01-.403.028A17.292 17.292 0 005.682 1.5a4.75 4.75 0 00-1.926.394 1.75 1.75 0 00-1.026 1.026A4.735 4.735 0 001.5 6.318c0 2.234.252 4.414.747 6.476A17.291 17.291 0 002.25 12.172c0 .139-.01.272-.028.403A17.292 17.292 0 001.5 18.318a4.75 4.75 0 00.394 1.926 1.75 1.75 0 001.026 1.026A4.735 4.735 0 006.318 22.5a17.292 17.292 0 006.476-.747c.131-.027.264-.037.403-.037a17.292 17.292 0 005.682.747 4.75 4.75 0 001.926-.394 1.75 1.75 0 001.026-1.026A4.735 4.735 0 0022.5 17.682a17.292 17.292 0 00-.747-6.476c-.027-.131-.037-.264-.037-.403A17.292 17.292 0 0022.5 5.682a4.75 4.75 0 00-.394-1.926 1.75 1.75 0 00-1.026-1.026A4.735 4.735 0 0017.682 1.5a17.292 17.292 0 00-6.476.747zM10.25 10.25a.75.75 0 011.5 0v3.5a.75.75 0 01-1.5 0v-3.5zm3.75 0a.75.75 0 010 1.5h-3.5a.75.75 0 010-1.5h3.5z" clipRule="evenodd" />
-  </svg>
-);
 
-
-export default ApplicationForms
+export default ApplicationForms;

@@ -16,8 +16,10 @@ function PaymentGate({ children }) {
     setLastTransaction,
   } = usePaymentStore();
 
-  const [scriptLoaded, setScriptLoaded] = useState(false);
-  const [paystackPopInstance, setPaystackPopInstance] = useState(null);
+  // For KoraPay Mobile Money, we don't necessarily load a client-side script
+  // We just need to know if the payment flow can proceed via the backend.
+  // The 'paystackReady' concept is less relevant here, but we can use it to gate the button.
+  const [payServiceReady, setPayServiceReady] = useState(true); // Assuming KoraPay is always ready on backend once the app loads
 
   // List of courses with their default prices
   const coursePrices = {
@@ -33,10 +35,15 @@ function PaymentGate({ children }) {
     ...Object.keys(coursePrices), // Dynamically get course names from keys
   ];
 
+  // Mobile money networks supported in Ghana by KoraPay (based on their docs)
+  const mobileNetworks = ["", "MTN", "AirtelTigo", "Vodafone"]; // Added Vodafone as it's common
+
   const [paymentDetails, setPaymentDetails] = useState({
     email: "",
-    amount: "", // Initialize as empty, will be set by selectedCourse or user input
+    amount: "",
     selectedCourse: "",
+    mobileNumber: "", // New: for mobile money
+    mobileNetwork: "", // New: for mobile money network
   });
   const [inputErrors, setInputErrors] = useState({});
 
@@ -46,103 +53,61 @@ function PaymentGate({ children }) {
       setPaid(true);
       return;
     }
-
-    const scriptId = "paystack-inline-js-gate";
-    if (!document.getElementById(scriptId)) {
-      setPaymentLoading(true);
-      const script = document.createElement("script");
-      script.src = "https://js.paystack.co/v1/inline.js";
-      script.id = scriptId;
-      script.onload = () => {
-        // IMPORTANT: Check if window.PaystackPop is available after script loads
-        if (window.PaystackPop && typeof window.PaystackPop === "function") {
-          setPaystackPopInstance(() => window.PaystackPop); // Store the constructor
-          setScriptLoaded(true);
-          setPaymentLoading(false);
-          console.log(
-            "Paystack inline.js script for PaymentGate loaded successfully and PaystackPop is available."
-          );
-        } else {
-          console.error(
-            "Paystack inline.js script loaded, but window.PaystackPop not found or not a function."
-          );
-          setPaymentError(
-            "Payment script loaded, but gateway not initialized correctly."
-          );
-          setPaymentLoading(false);
-        }
-      };
-      script.onerror = (e) => {
-        console.error(
-          "Failed to load Paystack inline.js script for PaymentGate:",
-          e
-        );
-        setPaymentLoading(false);
-        setPaymentError(
-          "Failed to load payment script. Please try again later."
-        );
-      };
-      document.body.appendChild(script);
-    } else {
-      // If script is already in DOM (e.g., component re-renders), re-check availability
-      if (window.PaystackPop && typeof window.PaystackPop === "function") {
-        setPaystackPopInstance(() => window.PaystackPop);
-        setScriptLoaded(true);
-      } else {
-        console.warn(
-          "Paystack inline.js script already in DOM, but window.PaystackPop not found/ready."
-        );
-        // Optionally, set an error or try reloading the script if this state is unexpected
-      }
-    }
-  }, [setPaid, setPaymentLoading, setPaymentError]);
+    // No client-side script loading for KoraPay Mobile Money for this flow.
+    // We assume backend is available.
+    setPayServiceReady(true);
+    setPaymentLoading(false); // Ensure loading is false on initial load
+  }, [setPaid, setPaymentLoading]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    let newAmount = paymentDetails.amount;
-    let newSelectedCourse = paymentDetails.selectedCourse;
+    let updatedDetails = { ...paymentDetails, [name]: value };
 
+    // If course is selected, auto-populate the amount
     if (name === "selectedCourse") {
-      newSelectedCourse = value;
-      // Set amount based on selected course, or clear if no course selected
-      newAmount = value ? (coursePrices[value] || "").toString() : "";
-    } else {
-      // If other input fields change, update them normally
-      setPaymentDetails((prev) => ({ ...prev, [name]: value }));
+      updatedDetails.amount = value
+        ? coursePrices[value]?.toString() || ""
+        : "";
     }
 
-    // Now update all relevant state, including the potentially new amount
-    setPaymentDetails((prev) => ({
-      ...prev,
-      [name]: value,
-      ...(name === "selectedCourse" && {
-        amount: newAmount,
-        selectedCourse: newSelectedCourse,
-      }),
-    }));
-
+    setPaymentDetails(updatedDetails);
     // Clear error for this input when user types
     if (inputErrors[name]) {
       setInputErrors((prev) => ({ ...prev, [name]: "" }));
     }
-    setPaymentError(null); // Clear general payment error on input change
-    setLastTransaction(null); // Clear last transaction details on new input
+    setPaymentError(null);
+    setLastTransaction(null);
   };
 
   const validateInputs = () => {
     let errors = {};
+
     if (!paymentDetails.email.trim()) {
       errors.email = "Email is required.";
     } else if (!/\S+@\S+\.\S+/.test(paymentDetails.email)) {
       errors.email = "Invalid email format.";
     }
+
     if (!paymentDetails.selectedCourse) {
       errors.selectedCourse = "Please select a course.";
     }
+
     const parsedAmount = parseFloat(paymentDetails.amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       errors.amount = "Amount must be a positive number.";
     }
+
+    // New validations for mobile money
+    if (!paymentDetails.mobileNumber.trim()) {
+      errors.mobileNumber = "Mobile number is required.";
+    } else if (!/^\d{10}$/.test(paymentDetails.mobileNumber.trim())) {
+      errors.mobileNumber = "Invalid 10-digit mobile number.";
+    }
+
+    if (!paymentDetails.mobileNetwork) {
+      errors.mobileNetwork = "Please select a mobile network.";
+    }
+
     setInputErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -152,36 +117,28 @@ function PaymentGate({ children }) {
       return;
     }
 
-    if (!scriptLoaded) {
-      setPaymentError(
-        "Payment script not loaded or initialized. Please wait or refresh."
-      );
-      return;
-    }
-
     setPaymentLoading(true);
     setPaymentError(null);
-    setLastTransaction(null); // Clear previous transaction details
+    setLastTransaction(null);
 
     const currentReference = `access_payment_${Date.now()}`;
-    const amountInKobo = parseFloat(paymentDetails.amount) * 100;
+    // KoraPay expects amount in minor units (pesewas/cents) for GHS.
+    const amountInMinorUnits = parseFloat(paymentDetails.amount) * 100;
 
     try {
-      // --- CRITICAL CHANGE HERE: Use relative path for frontend fetch ---
+      // Step 1: Initiate payment on backend (KoraPay API call)
       const initializeRes = await fetch("/api/payment/initialize", {
-        // Changed URL from absolute to relative
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: paymentDetails.email,
-          amount: amountInKobo,
+          amount: amountInMinorUnits,
           reference: currentReference,
-          metadata: {
-            purpose: "course_enrollment",
-            course: paymentDetails.selectedCourse,
-          },
+          selectedCourse: paymentDetails.selectedCourse,
+          mobileNumber: paymentDetails.mobileNumber.trim(),
+          mobileNetwork: paymentDetails.mobileNetwork,
         }),
       });
 
@@ -192,91 +149,55 @@ function PaymentGate({ children }) {
         );
       }
 
-      const { data: paystackResponseData } = await initializeRes.json();
-      const access_code = paystackResponseData.access_code;
+      const backendResponse = await initializeRes.json();
+      console.log("Backend payment initiation response:", backendResponse);
 
-      if (!access_code) {
-        throw new Error("Missing access_code from payment initialization.");
+      // KoraPay's response structure for mobile money might include a status and auth_model
+      // If it's a direct success, great. If it's pending (STK push, OTP), your backend should handle it
+      // and send appropriate instructions back to the frontend.
+      if (
+        backendResponse.status === "success" &&
+        backendResponse.data.status === "successful"
+      ) {
+        // Direct success from KoraPay through your backend
+        setPaid(true);
+        localStorage.setItem("hasPaidForAccess", "true");
+        setPaymentLoading(false);
+        setPaymentError(null);
+        setLastTransaction({
+          reference: currentReference,
+          status: "success",
+          amount: paymentDetails.amount,
+          course: paymentDetails.selectedCourse,
+        });
+      } else if (
+        backendResponse.status === "processing" ||
+        backendResponse.data?.status === "processing"
+      ) {
+        // Payment is pending, likely waiting for user approval on phone (STK push)
+        setPaymentLoading(false);
+        setPaymentError("Please check your phone to approve the payment.");
+        setLastTransaction({
+          reference: currentReference,
+          status: "pending",
+          amount: paymentDetails.amount,
+          course: paymentDetails.selectedCourse,
+        });
+        // In a real app, you might start polling your backend for transaction status here
+        // or rely on a webhook from KoraPay to your backend.
+      } else {
+        // Generic failure
+        setPaymentError(
+          backendResponse.message || "Payment initiation failed."
+        );
+        setLastTransaction({
+          reference: currentReference,
+          status: "failed",
+          amount: paymentDetails.amount,
+          course: paymentDetails.selectedCourse,
+        });
+        setPaymentLoading(false);
       }
-
-      // Step 2: Complete transaction using Paystack Popup
-      const popup = new paystackPop();
-      popup.resumeTransaction(access_code, {
-        onClose: () => {
-          console.log("Paystack popup closed by user.");
-          setPaymentLoading(false);
-          setPaymentError("Payment cancelled by user.");
-          setLastTransaction({
-            reference: currentReference,
-            status: "cancelled",
-            amount: paymentDetails.amount,
-            course: paymentDetails.selectedCourse,
-          });
-        },
-        onSuccess: async (transaction) => {
-          console.log("Paystack transaction successful:", transaction);
-          // Step 3: Verify transaction status from your backend
-          try {
-            // --- CRITICAL CHANGE HERE: Use relative path for frontend fetch ---
-            const verifyRes = await fetch("/api/payment/verify", {
-              // Changed URL from absolute to relative
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ reference: transaction.reference }),
-            });
-
-            if (!verifyRes.ok) {
-              const errorData = await verifyRes.json();
-              throw new Error(
-                errorData.message || "Failed to verify payment on backend."
-              );
-            }
-
-            const verificationResult = await verifyRes.json();
-            if (
-              verificationResult.status === "success" &&
-              verificationResult.amount === amountInKobo
-            ) {
-              setPaid(true);
-              localStorage.setItem("hasPaidForAccess", "true");
-              setPaymentLoading(false);
-              setPaymentError(null);
-              setLastTransaction({
-                reference: transaction.reference,
-                status: "success",
-                amount: paymentDetails.amount,
-                course: paymentDetails.selectedCourse,
-              });
-            } else {
-              const statusMsg = verificationResult.status || "unknown_status";
-              setPaymentError(
-                `Payment verification failed or amount mismatch: ${statusMsg}`
-              );
-              setLastTransaction({
-                reference: transaction.reference,
-                status: statusMsg,
-                amount: paymentDetails.amount,
-                course: paymentDetails.selectedCourse,
-              });
-              setPaymentLoading(false);
-            }
-          } catch (verifyError) {
-            console.error("Error during payment verification:", verifyError);
-            setPaymentError(
-              `Payment verification failed: ${verifyError.message}`
-            );
-            setLastTransaction({
-              reference: currentReference,
-              status: "verification_error",
-              amount: paymentDetails.amount,
-              course: paymentDetails.selectedCourse,
-            });
-            setPaymentLoading(false);
-          }
-        },
-      });
     } catch (error) {
       console.error("Payment initiation error:", error);
       setPaymentError(`Failed to initiate payment: ${error.message}`);
@@ -309,8 +230,8 @@ function PaymentGate({ children }) {
           Select your desired course and complete payment to gain access.
         </p>
 
-        {/* Input fields for email, course, and amount */}
         <div className="space-y-4 mb-6">
+          {/* Email Input */}
           <div>
             <label htmlFor="email" className="sr-only">
               Email
@@ -334,6 +255,7 @@ function PaymentGate({ children }) {
             )}
           </div>
 
+          {/* Course Selection */}
           <div>
             <label htmlFor="selectedCourse" className="sr-only">
               Select Course
@@ -351,12 +273,13 @@ function PaymentGate({ children }) {
               disabled={paymentLoading}
             >
               <option value="">-- Select a Course --</option>
-              {courses.map((course, index) => (
-                <option key={index} value={course}>
+              {courses.map((course) => (
+                <option key={course} value={course}>
                   {course} - $
                   {coursePrices[course]
                     ? coursePrices[course].toFixed(2)
-                    : "N/A"}
+                    : "N/A"}{" "}
+                  {/* FIX: Safely access toFixed */}
                 </option>
               ))}
             </select>
@@ -367,13 +290,67 @@ function PaymentGate({ children }) {
             )}
           </div>
 
+          {/* Mobile Money Number Input */}
+          <div>
+            <label htmlFor="mobileNumber" className="sr-only">
+              Mobile Money Number
+            </label>
+            <input
+              type="text"
+              id="mobileNumber"
+              name="mobileNumber"
+              value={paymentDetails.mobileNumber}
+              onChange={handleInputChange}
+              placeholder="Mobile Money Number (e.g., 0541234567)"
+              className={`w-full p-3 rounded-md bg-gray-700 border ${
+                inputErrors.mobileNumber ? "border-red-500" : "border-gray-600"
+              } text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500`}
+              disabled={paymentLoading}
+            />
+            {inputErrors.mobileNumber && (
+              <p className="text-red-400 text-sm mt-1 text-left">
+                {inputErrors.mobileNumber}
+              </p>
+            )}
+          </div>
+
+          {/* Mobile Money Network Selection */}
+          <div>
+            <label htmlFor="mobileNetwork" className="sr-only">
+              Mobile Money Network
+            </label>
+            <select
+              id="mobileNetwork"
+              name="mobileNetwork"
+              value={paymentDetails.mobileNetwork}
+              onChange={handleInputChange}
+              className={`w-full p-3 rounded-md bg-gray-700 border ${
+                inputErrors.mobileNetwork ? "border-red-500" : "border-gray-600"
+              } text-white focus:outline-none focus:ring-2 focus:ring-emerald-500`}
+              disabled={paymentLoading}
+            >
+              <option value="">-- Select Mobile Network --</option>
+              {mobileNetworks.map((network) => (
+                <option key={network} value={network}>
+                  {network}
+                </option>
+              ))}
+            </select>
+            {inputErrors.mobileNetwork && (
+              <p className="text-red-400 text-sm mt-1 text-left">
+                {inputErrors.mobileNetwork}
+              </p>
+            )}
+          </div>
+
+          {/* Amount Input (populated automatically but still displayed) */}
           <div>
             <label htmlFor="amount" className="sr-only">
               Amount
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                $
+              <span className="absolute left-1 top-1/2 -translate-y-1/2 text-gray-400">
+                GHC
               </span>
               <input
                 type="number"
@@ -402,11 +379,7 @@ function PaymentGate({ children }) {
           <div className="flex flex-col items-center justify-center">
             <Loader className="h-16 w-16 text-emerald-400 animate-spin mb-4" />
             <p className="text-white text-lg font-semibold">
-              {paymentError
-                ? paymentError
-                : !scriptLoaded
-                ? "Loading payment gateway..."
-                : "Processing payment..."}
+              Processing payment... (Please check your phone if prompted)
             </p>
           </div>
         ) : (
@@ -417,21 +390,59 @@ function PaymentGate({ children }) {
                 <span>{paymentError}</span>
               </div>
             )}
+
+            {/* Debug info - remove in production */}
+            {process.env.NODE_ENV === "development" && (
+              <div className="mb-4 p-2 bg-gray-700 rounded text-xs text-gray-300">
+                <p>Debug Info:</p>
+                <p>Payment Service Ready: {payServiceReady ? "✅" : "❌"}</p>
+                <p>Email Valid: {paymentDetails.email.trim() ? "✅" : "❌"}</p>
+                <p>
+                  Amount Valid: {paymentDetails.amount.trim() ? "✅" : "❌"}
+                </p>
+                <p>
+                  Course Selected: {paymentDetails.selectedCourse ? "✅" : "❌"}
+                </p>
+                <p>
+                  Mobile Number:{" "}
+                  {paymentDetails.mobileNumber.trim() ? "✅" : "❌"}
+                </p>
+                <p>
+                  Mobile Network: {paymentDetails.mobileNetwork ? "✅" : "❌"}
+                </p>
+              </div>
+            )}
+
             <button
               onClick={handlePayNow}
-              className="w-full flex justify-center items-center py-3 px-6 border border-transparent rounded-lg shadow-sm text-base
-                       font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2
-                       focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+              className={`w-full flex justify-center items-center py-3 px-6 border border-transparent rounded-lg shadow-sm text-base
+                       font-medium text-white transition-colors ${
+                         !payServiceReady ||
+                         paymentLoading ||
+                         !paymentDetails.email.trim() ||
+                         !paymentDetails.amount.trim() ||
+                         !paymentDetails.selectedCourse ||
+                         !paymentDetails.mobileNumber.trim() ||
+                         !paymentDetails.mobileNetwork
+                           ? "bg-gray-600 cursor-not-allowed opacity-50"
+                           : "bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                       }`}
               disabled={
-                !scriptLoaded ||
+                !payServiceReady ||
                 paymentLoading ||
                 !paymentDetails.email.trim() ||
                 !paymentDetails.amount.trim() ||
-                !paymentDetails.selectedCourse
+                !paymentDetails.selectedCourse ||
+                !paymentDetails.mobileNumber.trim() ||
+                !paymentDetails.mobileNetwork
               }
             >
-              <CreditCard className="mr-2 h-5 w-5" /> Pay $
-              {parseFloat(paymentDetails.amount || "0").toFixed(2)} to Access
+              <CreditCard className="mr-2 h-5 w-5" />
+              {paymentLoading
+                ? "Processing Payment..."
+                : `Pay ${parseFloat(paymentDetails.amount || "0").toFixed(
+                    2
+                  )} to Access`}
             </button>
           </>
         )}
@@ -463,7 +474,7 @@ function PaymentGate({ children }) {
             </p>
             {lastTransaction.amount && (
               <p>
-                <strong>Amount:</strong> $
+                <strong>Amount:</strong> GHC
                 {parseFloat(lastTransaction.amount).toFixed(2)}
               </p>
             )}
