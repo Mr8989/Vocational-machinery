@@ -74,7 +74,7 @@ function Navbar() {
             rounded-md flex items-center transition duration-300 ease-in-out"
             >
             <Wallet className="inline-block mr-1" size={18}/>
-            <span className="hidden sm:inline">Payment</span>
+            <span className="hidden sm:inline">Register</span>
             </Link>
             {isInstructor && (
               <Link

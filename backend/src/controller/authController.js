@@ -74,7 +74,7 @@ export const login = async (req, res) => {
         //check if password exist
         const isPasswordCorrect = await user.comparePassword(password);
         if(!isPasswordCorrect){
-            return res.status(401).json({message:"Invalid credentials"})
+            return res.status(401).json({message:"Incorrect password try again"})
         }
         const token = generateToken(user._id);
         res.status(200).json({
@@ -91,7 +91,7 @@ export const login = async (req, res) => {
         })
     } catch (error) {
         console.log("Error in login route", error);
-        res.status(500).json({message:"Internal server error", error});
+        res.status(500).json({message:"Please check your network", error});
     }
 }
 
