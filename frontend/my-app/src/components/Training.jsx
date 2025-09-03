@@ -11,7 +11,7 @@ function Training() {
     fetchVideos();
   }, [fetchVideos]); // Depend on fetchVideos to avoid re-running unecessorily
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-8 flex flex-col items-center">
+    <div className="min-h-screen bg-gray-950 text-white p-20 flex flex-col items-center">
       <motion.h1
         className="text-5xl font-extrabold text-center mb-12 text-emerald-300"
         initial={{ opacity: 0, y: -50 }}

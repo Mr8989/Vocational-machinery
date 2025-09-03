@@ -49,26 +49,26 @@ export const useAuthStore = create((set) => ({
     login: async(email, password) =>{
         set({loading: true})
         try {
-            const response = await fetch("http://localhost:5000/api/auth/login",{
-                method:"POST",
-                headers:{
-                    "Content-Type": "application/json"
-                },
-                body:JSON.stringify({
-                    email,
-                    password
-                })
-            });
-            const data = await response.json();
-            console.log(data)
-            if(!response.ok){
-                throw new Error(data.message || data.error || "Login failed")
-            }
+          const response = await fetch("http://localhost:5000/api/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email,
+              password,
+            }),
+          });
+          const data = await response.json();
+          console.log(data);
+          if (!response.ok) {
+            throw new Error(data.message || data.error || "Login failed");
+          }
 
-            localStorage.setItem("authToken", data.token)
+          localStorage.setItem("authToken", data.token);
 
-            set({token: data.token, user: data.user, loading: false})
-
+          set({ token: data.token, user: data.user, loading: false });
+           toast.success(data.message,{position:"top-center"})
         } catch (error) {
             set({loading:false});
             toast.error(error.message || "Login failed")

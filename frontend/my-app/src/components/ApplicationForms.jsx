@@ -186,7 +186,7 @@ function ApplicationForms() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center p-20">
       <motion.div
         className="bg-gray-800 shadow-lg rounded-lg p-8 max-w-xl w-full mx-auto border border-emerald-700"
         initial={{ opacity: 0, y: 20 }}

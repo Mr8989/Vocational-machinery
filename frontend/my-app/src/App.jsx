@@ -11,6 +11,7 @@ import LoadingSpinner from "./components/LoadingSpinner"
 import InstructorPage from "./components/InstructorPage";
 import ApplicationForms from "./components/ApplicationForms";
 import PaymentGate from "./Pages/PaymentGate";
+import { Toaster } from "react-hot-toast";
 
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
           <Route path="/secret-instructor" element={user?.role === "instructor" ? <InstructorPage/> : <Navigate to={"/"}/>}/>
           <Route path="/graduate" element={user?.role === "graduate" ? <ApplicationForms/> : <Navigate to={"/"}/>}/>
         </Routes>
+        <Toaster/>
       </div>
     </div>
   );

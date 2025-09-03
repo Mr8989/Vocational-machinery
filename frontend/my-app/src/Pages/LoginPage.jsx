@@ -18,6 +18,7 @@ function LoginPage() {
       await login(email, password)
       console.log("login successful", email, password)
       
+      
     } catch (error) {
       console.log("Error in submit", error.message);
     }
