@@ -1,18 +1,19 @@
 import express from "express";
 import multer from "multer";
 import { isInstructorOrAdmin, protectRoute } from "../middleware/auth.middle.js";
-import { createSession, incomingSession, enrollUser, paginationSession, filterSession, updateAndCancel} from "../controller/trainController.js";
+import { createSession, enrollUser, paginationSession, filterSession, updateAndCancel, streamVideo} from "../controller/trainController.js";
 
 const storage = multer.memoryStorage();
 const upload = multer({storage: storage})
 
 const router = express.Router();
 
-router.post("/videos",isInstructorOrAdmin, upload.single('video'), createSession);
-router.post("/", protectRoute, isInstructorOrAdmin,incomingSession);
+router.post("/videos",upload.single('video') ,isInstructorOrAdmin, createSession);
+router.post("/", protectRoute, isInstructorOrAdmin);
+router.get("/video/:filename", streamVideo)
 router.post("/:id/enroll", isInstructorOrAdmin, enrollUser);
-router.get("/",protectRoute, paginationSession);
-router.get("/", protectRoute, filterSession);
+router.get("/paginate",protectRoute, paginationSession);
+router.get("/filter", protectRoute, filterSession);
 router.patch("/:id",isInstructorOrAdmin, updateAndCancel);
 
 

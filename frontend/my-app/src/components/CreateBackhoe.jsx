@@ -163,31 +163,37 @@ const [errors, setErrors] = useState({});
             )}
           </div>
           {/**Categories */}
+          {/* Category Select */}
           <div>
             <label
-              htmlFor="name"
+              htmlFor="category"
               className="block text-sm font-medium text-gray-300"
             >
               Select Category
             </label>
             <select
-              name="text"
               id="category"
-              className="block w-full px-3 py-2 pl-10 bg-gray-700 rounded-md shadow-sm
-                    placeholder-gray-400 focus-outline focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+              value={newVideo.category}
+              onChange={(e) =>
+                setNewVideo({ ...newVideo, category: e.target.value })
+              }
+              className="block w-full px-3 py-2 pl-3 bg-gray-700 rounded-md shadow-sm
+              placeholder-gray-400 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
             >
-              <option value="backhoe">Select a category</option>
               {categories.map((category) => (
-                <option key={category} value={category}> {category}</option>
+                <option key={category} value={category}>
+                  {category}
+                </option>
               ))}
             </select>
           </div>
-          {/**Video upload field */}
+
+          {/* Video Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              {" "}
               Video File *
             </label>
+
             {!newVideo.video ? (
               <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-emerald-500 transition-colors">
                 <input
@@ -225,32 +231,25 @@ const [errors, setErrors] = useState({});
                       <p>{formatFileSize(newVideo.video.size)}</p>
                     </div>
                   </div>
+                  {/* ✅ Remove button shown only when a file is uploaded */}
+                  <button
+                    type="button"
+                    onClick={removeVideo}
+                    className="text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
             )}
-            <button
-              type="submit"
-              onClick={removeVideo}
-              className="text-red-400 hover:text-red-300 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
           </div>
-          {newVideo.videoPreview && (
-            <video
-              src={newVideo.videoPreview}
-              controls
-              className="w-full max-h-40 rounded-md"
-            >
-              Your browser does not support the video tag
-            </video>
-          )}
+
+          {/* Submit Button */}
           <button
-            type="button"
-            onClick={handleSubmit}
+            type="submit"
             className="w-full flex justify-center items-center py-3 px-6 border border-transparent rounded-lg shadow-sm text-base
-              font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2
-              focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+    font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2
+    focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             disabled={loading}
           >
             {loading ? (

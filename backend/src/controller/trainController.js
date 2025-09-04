@@ -1,76 +1,75 @@
 import Training from "../models/training.js";
 import multer from "multer";
+import { gfs } from "../lib/gridFs.js";
+import {GridFsStorage} from "multer-gridfs-storage"
+import "dotenv/config.js"
 
-import pkg from "cloudinary"
+//import pkg from "cloudinary"
 
-const storage = multer.memoryStorage();
-const upload = multer({storage: storage});
+
+const storage = new GridFsStorage({
+    url:process.env.MONGO_URI,
+    file:(req, file) => {
+        return {
+            bucketName: "videos",
+            fileName:`${Date.now()}-${file.originalname}}`,
+        };
+    }
+})
+
+export const upload = multer({storage})
 
 export const createSession = async (req, res) =>{
     try {
-        //validate request
-        console.log("Received request body before destructiong", req.body)
-        
-        const {title, instructor, description, category} = req.body;
+        console.log("Received request body", req.body);
 
-        const videoFile = req.file
-        console.log("Receiving video file", req.file)
+        const { title, instructor, description, category } = req.body;
 
-        if(!title || !instructor || !description || !category){
-          return  res.status(400).json({message : "All fields are required"})
+        if (!title || !instructor || !description || !category) {
+            return res.status(400).json({ message: "All fields are required" });
         }
-        let cloudinaryResponse = null;
 
-        if(!videoFile){
-            return res.status(400).json({message:"video file required"})
-            
+        if (!req.file) {
+            return res.status(400).json({ message: "Video file is required" });
         }
-        const b64 = Buffer.from(videoFile.buffer).toString('base64');
-        const dataUri = "data:" + videoFile.mimetype + ";base64," + b64;
 
-        cloudinaryResponse = await pkg.uploader.upload(dataUri,{
-            resource_type:"video",
-            folder:"newsession",
-            chunk_size: 6000000 //6MB chuncks for large videos
-        })
-       
+        // Save metadata in Training collection
         const newSession = await Training.create({
             title,
             instructor,
             description,
             category,
-            video: cloudinaryResponse?.secure_url? cloudinaryResponse.secure_url : "",
-        })
+            video: req.file.filename, // store GridFS filename (reference)
+        });
+
         res.status(201).json({
             success: true,
-            data: newSession
-        })
+            data: newSession,
+        });
     } catch (error) {
         console.log("Error in creating session", error);
-        res.status(500).json({success:false, data:"Server error"})
-        
+        res.status(500).json({ success: false, message: "Server error" });
     }
-}
-// Get all upcoming training session
-export const incomingSession = async (req, res) => {
+};
+
+// ✅ Stream video back
+export const streamVideo = async (req, res) => {
     try {
-        const upcomingSession = await Training.find({
-            status: "upcoming",
-            startTime: {$gt: new Date()} //onlly future sessions
-        }).sort({startTime: 1}) //Ascending order
-        return res.status(200).json({
-            success: true,
-            count: upcomingSession.length,
-            data: upcomingSession
-        })
+        const file = await gfs.files.findOne({ filename: req.params.filename });
+        if (!file) {
+            return res.status(404).json({ message: "Video not found" });
+        }
+
+        const readstream = gfs.createReadStream(file.filename);
+        res.set("Content-Type", file.contentType);
+        readstream.pipe(res);
     } catch (error) {
-        console.log("Error at incoming session", error)
-        res.status(500).json({
-            success: false,
-            data: "Server error"
-        })
+        console.log("Error streaming video", error);
+        res.status(500).json({ message: "Error streaming video" });
     }
-}
+};
+
+
 
 //enroll user to a session
 export const enrollUser = async (req, res) => {
