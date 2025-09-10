@@ -1,5 +1,5 @@
 import { create } from "zustand"
-
+import {toast} from "react-hot-toast"
 
 export const useVideoStore = create((set) => ({
     videos: [],
@@ -10,7 +10,8 @@ export const useVideoStore = create((set) => ({
     createBackhoeVideo: async (backhoeData) => {
         set({ loading: true })
         try {
-            const token = localStorage.getItem("authToken");
+            const token = localStorage.getItem("token");
+            const userId = localStorage.getItem("userId");
             if (!token) {
                 throw new Error("No authentication token found");
             }
@@ -18,9 +19,11 @@ export const useVideoStore = create((set) => ({
             // Create FormData for file upload (instead of JSON)
             const formData = new FormData();
             formData.append('title', backhoeData.title);
-            formData.append('instructor', backhoeData.instructor);
+            //formData.append('instructor', localStorage.getItem("userId"));
             formData.append('description', backhoeData.description);
-            formData.append('category', backhoeData.category)
+            formData.append('category', backhoeData.category);
+            formData.append('startTime',backhoeData.startTime);
+            formData.append('endTime', backhoeData.endTime);
 
             if (backhoeData.video) {
                 if (backhoeData.video instanceof File) {
@@ -54,29 +57,38 @@ export const useVideoStore = create((set) => ({
                 videos: [...state.videos, newVideo],//add a new video
                 loading: false,
             }));
+
+            toast.success("Video created successfully 🎉")
+           
             return newVideo;
         } catch (error) {
             set({ loading: false })
+            toast.error("Error creating video ❌")
             console.log("Error creating video", error.message)
         }
     },
     fetchVideos: async () => {
         set({ loading: true, error: null });
         try {
-            const token = localStorage.getItem("authToken"); // Assuming token is needed to fetch
+            const token = localStorage.getItem("token"); // Assuming token is needed to fetch
             const response = await fetch("http://localhost:5000/api/training/videos", { // Endpoint to fetch ALL videos
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
+                method: "GET",
+            //     headers: {
+            //         "Authorization": `Bearer ${token}`
+            //     }
+             });
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || "Failed to fetch videos");
             }
-            const data = await response.json();
-            set({ videos: data.data, loading: false }); // Assuming backend sends { success: true, data: [...] }
+            const json = await response.json();
+
+
+            set({
+                videos: Array.isArray(json.data) ? json.data : [],
+                loading: false,}); // Assuming backend sends { success: true, data: [...] }
         } catch (error) {
-            set({ error: error.message, loading: false });
+            set({ error: error.message, loading: false }); 
             console.error("Error fetching videos:", error);
         }
     },

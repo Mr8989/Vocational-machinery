@@ -23,7 +23,7 @@ function Navbar() {
         <div className="flex flex-wrap justify-between items-center">
           <Link
             to={"/"}
-            className="text-2xl font-bold text-emerald-400 items-center space-x-2 flex"
+            className="text-4xl font-bold text-emerald-400 items-center space-x-2  flex"
           >
             
             Chafas Institute

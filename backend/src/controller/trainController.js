@@ -3,6 +3,8 @@ import multer from "multer";
 import { gfs } from "../lib/gridFs.js";
 import {GridFsStorage} from "multer-gridfs-storage"
 import "dotenv/config.js"
+//import Video from "../models/training.js"
+
 
 //import pkg from "cloudinary"
 
@@ -23,27 +25,53 @@ export const createSession = async (req, res) =>{
     try {
         console.log("Received request body", req.body);
 
-        const { title, instructor, description, category } = req.body;
+        const { title, description, category, startTime, endTime} = req.body;
 
-        if (!title || !instructor || !description || !category) {
+        if (!title ||  !description || !category || !startTime || !endTime) {
             return res.status(400).json({ message: "All fields are required" });
         }
 
         if (!req.file) {
-            return res.status(400).json({ message: "Video file is required" });
+            return res.status(400).json({ message: "Video file is required"});
+        }
+
+                //instructor comes from login
+             const instructorUsername = req.user?.username || "Unknown";
+
+             if(req.user.role !== "instructor" && req.user.role !== "admin"){
+                return res.status(403).json({message: "Only instructors or admin can create session"})
+             }
+
+        // Construct video object
+        const video = {
+            title,
+            description,
+            gridfsId: null, // not used when storing in uploads folder
+            duration: 120,
+            uploadedAt: new Date(),
+            thumbnail: null,
+            filePath: `uploads/${req.file.filename}`
+        };
+
+        // Add file path if uploaded
+        if (req.file) {
+            video.filePath = `/uploads/${req.file.filename}`;
         }
 
         // Save metadata in Training collection
         const newSession = await Training.create({
             title,
-            instructor,
+            instructor:req.user._id,
             description,
             category,
-            video: req.file.filename, // store GridFS filename (reference)
+            startTime, 
+            endTime,
+            videos: [video],
+        
         });
 
         res.status(201).json({
-            success: true,
+            success: true, 
             data: newSession,
         });
     } catch (error) {
@@ -51,6 +79,30 @@ export const createSession = async (req, res) =>{
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
+export const getAllVideos = async (req, res) => {
+    try {
+        const sessions = await Training.find();
+
+        // Flatten out videos from all sessions
+        const videos = sessions.flatMap(session =>
+            session.videos.map(video => ({
+                ...video.toObject(),
+                sessionId: session._id.toString(),
+                instructor: session.instructor,
+                category: session.category,
+            }))
+        );
+
+        res.status(200).json({
+            success: true,
+            data: videos,
+        });
+    } catch (error) {
+        console.error("Error fetching videos:", error);
+        res.status(500).json({ message: "Error fetching videos", error });
+    }
+};
+
 
 // ✅ Stream video back
 export const streamVideo = async (req, res) => {

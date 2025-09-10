@@ -1,16 +1,21 @@
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 
-const generateToken = (userId) => {
+const generateToken = (user) => {
 
-    return jwt.sign({userId}, process.env.JWT_SECRET, {expiresIn: "15d"});
+    return jwt.sign({
+        id: user._id,
+        username: user.username,
+        role: user.role
+
+    }, process.env.JWT_SECRET, {expiresIn: "15d"});
 }
 
 export const  signup = async (req, res) => {
     try {
-        const {username, email, password, confirmPassword, school, role} = req.body;
+        const {username, email, password, confirmPassword, role} = req.body;
 
-        if(!username || !email || !password || !confirmPassword || !school || !role){
+        if(!username || !email || !password || !confirmPassword  || !role){
             return res.status(400).json({message: "All fields are required"});
         }
         if(password.length < 6){
@@ -32,15 +37,12 @@ export const  signup = async (req, res) => {
             email,
             username,
             password,
-            school,
             role,
-            school
-            
         });
 
         await user.save();
 
-        const token = generateToken(user._id);
+        const token = generateToken(user);
 
         res.status(201).json({
             token,
@@ -48,7 +50,6 @@ export const  signup = async (req, res) => {
             username: user.username,
             email: user.email,
             role: user.role,
-            school: user.school,
             createdAt: user.createdAt,
         })
 
@@ -76,7 +77,7 @@ export const login = async (req, res) => {
         if(!isPasswordCorrect){
             return res.status(401).json({message:"Incorrect password try again"})
         }
-        const token = generateToken(user._id);
+        const token = generateToken(user);
         res.status(200).json({
             success: true,
             message:"Login successfully",
@@ -95,15 +96,15 @@ export const login = async (req, res) => {
     }
 }
 
-export const protect = async( req, res) => {
-    res.status(200).json({
-        success: true,
-        user: {
-        id:req.user._id,
-        username: req.user.username,
-        email:req.user.email,
-        role:req.user.role,
-        createdAt: req.user.createdAt
-        }
-    })
-}
+// export const protect = async( req, res) => {
+//     res.status(200).json({
+//         success: true,
+//         user: {
+//         id:req.user._id,
+//         username: req.user.username,
+//         email:req.user.email,
+//         role:req.user.role,
+//         createdAt: req.user.createdAt
+//         }
+//     })
+// }

@@ -6,7 +6,7 @@ import "dotenv/config.js";
 export const protectRoute = async (req, res, next) => {
     try {
         //get token 
-        const token = req.header("Authorization").replace("Bearer", "");
+        const token = req.header("Authorization").replace("Bearer ", "");
         if(!token){
             return res.status(401).json({message: "No authentication token access denied"});
         }
@@ -15,11 +15,18 @@ export const protectRoute = async (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
         //find user
-        const user = await User.findById(decoded.userId).select("-password");
+        const user = await User.findById(decoded.id).select("-password");
         if(!user){
             return res.status(401).json({message: "token is not valid"})
         }
-        req.user = user;
+
+        // req.user = {
+        //     id: decoded.userId,
+        //     username: decoded.username,
+        //     role: decoded.role,
+        // }
+        console.log("Decoded user from token", req.user);
+        req.user = user; 
         next();
         
     } catch (error) {

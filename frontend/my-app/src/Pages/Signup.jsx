@@ -9,7 +9,6 @@ function Signup() {
   const [formData, setFormData] = useState({
   username:"",
   email:"",
-  school:"",
   role:"undergraduate",
   password:"",
   confirmPassword:"",
@@ -21,14 +20,13 @@ function Signup() {
     if(formData.password !== formData.confirmPassword){
       alert("Password donot match")
     }
-    else if(!formData.school || !formData.role){
-      alert("School and role are required")
+    else if(!formData.role){
+      alert("Role is required")
     }
     e.preventDefault();
     const result = await signup(
     formData.username,
     formData.email,
-    formData.school,
     formData.role,
     formData.password,
     formData.confirmPassword
@@ -36,7 +34,7 @@ function Signup() {
     console.log(result, "Signup successfull")
   }
   return (
-    <div className="flex flex-col justify-center py-2 sm:px-6 lg:px-8">
+    <div className="flex flex-col justify-center py-16 sm:px-6 lg:px-8">
       <motion.div
         className="sm:mx-auto sm:w-full sm:max-w-md"
         initial={{ opacity: 0, y: -20 }}
@@ -111,7 +109,7 @@ function Signup() {
                 </div>
               </div>
             </div>
-            <div>
+            {/* <div>
               <label
                htmlFor="name"
                className='block text-sm font-medium text-gray-300'
@@ -137,7 +135,7 @@ function Signup() {
                     />
                     </div>
               </div>
-            </div>
+            </div> */}
             <div>
               <label 
               htmlFor="name"

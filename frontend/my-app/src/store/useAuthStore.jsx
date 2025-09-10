@@ -35,7 +35,7 @@ export const useAuthStore = create((set) => ({
                 throw new Error(data.message || "Smething went wrong")
             }
             set({ token: data.token, user: data.user, loading: false });
-            localStorage.setItem("auth",JSON.stringify({
+            localStorage.setItem("token",JSON.stringify({
                 user:data.user,
                 token:data.token,
             }))
@@ -43,6 +43,7 @@ export const useAuthStore = create((set) => ({
             return { success: true };
         } catch (error) {
             set({loading:false});
+            toast.error("Backend server is not running, alert the developer")
             return ({success: false, error:error.message})
         }
     },
@@ -65,10 +66,13 @@ export const useAuthStore = create((set) => ({
             throw new Error(data.message || data.error || "Login failed");
           }
 
-          localStorage.setItem("authToken", data.token);
-
           set({ token: data.token, user: data.user, loading: false });
-           toast.success(data.message,{position:"top-center"})
+
+          toast.success(data.message,{position:"top-center"})
+
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("userId", data.user._id);
+          
         } catch (error) {
             set({loading:false});
             toast.error(error.message || "Login failed")

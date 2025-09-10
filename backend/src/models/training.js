@@ -1,13 +1,11 @@
 import mongoose from "mongoose";
 
-
 const videoSchema = new mongoose.Schema({
-    title: { type: String, required: true },
+    title: String,
     description: String,
-    gridfsId: { type: mongoose.Schema.Types.ObjectId, required: true }, // store reference to GridFS
+    filePath: String,
     duration: Number,
-    thumbnail: String,
-    uploadedAt: { type: Date, default: Date.now }
+    uploadedAt: { type: Date, default: Date.now },
 });
 
 const trainingSchema = new mongoose.Schema({
@@ -17,13 +15,12 @@ const trainingSchema = new mongoose.Schema({
     endTime: { type: Date, required: true },
     category: {
         type: String,
-        enum: ["backhoe", "excavator", "Forklift", "LongTruck", "Crain"],
+        enum: ["backhoe", "excavator", "forklift", "longtruck", "crain"], // ✅ consistent
         default: "backhoe"
     },
-    videos: [videoSchema]
-},
-    { timestamps: true }
-);
+    videos: [videoSchema]  
+}, { timestamps: true });
+
 const Training = mongoose.model("Training", trainingSchema);
 
 export default Training;

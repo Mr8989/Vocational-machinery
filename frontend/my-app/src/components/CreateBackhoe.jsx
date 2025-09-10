@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Loader, Play, PlusCircle, Upload, X } from "lucide-react";
 import { useVideoStore } from "../stores/useVideoStore";
 
-const categories = ["Backhoe", "Forklift", "Excavator", "Long Truck", "Crain"];
+const categories = ["backhoe", "forklift", "excavator", "longtruck", "crain"];
 
 function CreateBackhoe() {
 
@@ -14,11 +14,13 @@ const [errors, setErrors] = useState({});
 
   const [newVideo, setNewVideo] = useState({
     title: "",
-    instructor: "",
+    //instructor: "",
     description: "",
     video: null,
     videoPreview:"",
-    category:"Backhoe"
+    category:"backhoe",
+    startTime: new Date().toISOString().slice(0, 16), //now
+    endTime: new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16) //1hr later
   });
 
   const handleSubmit = async (e) => {
@@ -39,11 +41,11 @@ const [errors, setErrors] = useState({});
         setErrors({...errors, video: "Please select a valid video file"});
         return;
       }
-      const maxSize = 10 * 1024 * 1024//10MB
-      if(file.size > maxSize){
-        setErrors({...errors, video: "file size must be less than 50MB"})
-        return;
-      }
+      // const maxSize = 1024 * 1024 * 1024//1GB
+      // if(file.size > maxSize){
+      //   setErrors({...errors, video: "file size must be less than 50MB"})
+      //   return;
+      // }
       const reader = new FileReader();
       reader.onload = () => {
         setNewVideo({
@@ -104,7 +106,7 @@ const [errors, setErrors] = useState({});
               type="text"
               id="title"
               name="title"
-              value={newVideo.title}
+              value={newVideo.title || ""}
               onChange={(e) =>
                 setNewVideo({ ...newVideo, title: e.target.value })
               }
@@ -118,7 +120,7 @@ const [errors, setErrors] = useState({});
             )}
           </div>
           {/**Instructor Input */}
-          <div>
+             {/* <div>
             <label
               htmlFor="instructor"
               className="block text-sm font-medium text-gray-300"
@@ -141,14 +143,14 @@ const [errors, setErrors] = useState({});
             {errors.instructor && (
               <p className="mt-1 text-sm text-red-400">{errors.instructor}</p>
             )}
-          </div>
+          </div>    */}
           {/**Description */}
           <div>
             <label htmlFor="description">Description</label>
             <textarea
               id="description"
               name="description"
-              value={newVideo.description}
+              value={newVideo.description || ""}
               onChange={(e) =>
                 setNewVideo({ ...newVideo, description: e.target.value })
               }
@@ -173,7 +175,7 @@ const [errors, setErrors] = useState({});
             </label>
             <select
               id="category"
-              value={newVideo.category}
+              value={newVideo.category || "baackhoe"}
               onChange={(e) =>
                 setNewVideo({ ...newVideo, category: e.target.value })
               }
@@ -181,11 +183,31 @@ const [errors, setErrors] = useState({});
               placeholder-gray-400 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
             >
               {categories.map((category) => (
-                <option key={category} value={category}>
+                <option key={category} value={category.toLowerCase().replace(" ","")}>
                   {category}
                 </option>
               ))}
             </select>
+          </div>
+              {/**Start time */}
+              <label htmlFor="start-time">Start Time</label>
+          <div className="block w-full px-3 py-2 pl-3 bg-gray-700 rounded-md shadow-sm
+          placeholder-gray-400 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
+              <input
+              type="datetime-local"
+              value={newVideo.startTime}
+              onChange={(e) => setNewVideo({...newVideo, startTime: e.target.value})}
+              />
+          </div>
+              {/**End time */}
+              <label htmlFor="end-time">End Time</label>
+          <div className="block w-full px-3 py-2 pl-3 bg-gray-700 rounded-md shadow-sm
+          placeholder-gray-400 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
+              <input 
+              type="datetime-local" 
+              value={newVideo.endTime}
+              onChange={(e) => setNewVideo({...newVideo, endTime: e.target.value})}
+              />
           </div>
 
           {/* Video Upload */}
