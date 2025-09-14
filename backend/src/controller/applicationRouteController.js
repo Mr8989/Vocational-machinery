@@ -1,5 +1,6 @@
 import JobApplication from "../models/jobApplication.js";
 import JobPosting from "../models/jobPosting.js";
+import Training from "../models/training.js";
 // The following imports are typically used for setting up routes or middleware,
 // and are not directly consumed within these controller functions.
 // import { v4 as uuid } = "uuid";
@@ -24,66 +25,31 @@ import JobPosting from "../models/jobPosting.js";
  */
 export const submitApplication = async (req, res) => {
     try {
-        const { jobPostingId, coverLetter, skills } = req.body; // Corrected casing for jobPostingId
+        const { title, description, requirements, skillsRequired, location, deadline, trainingRequirement } = req.body;
 
-        // 1. Basic validation for essential request body fields and file
-        if (!jobPostingId || !coverLetter || !skills || !req.file || !req.file.path) {
-            return res.status(400).json({
-                message: "Missing required application fields: Job Posting ID, cover letter, skills, or resume file.",
-            }); 
-        }
-
-        // 2. Ensure the user is authenticated (applicant)
-        if (!req.user || !req.user._id) {
-            return res.status(401).json({
-                message: "Authentication required. Please log in to submit an application.",
-            });
-        }
-
-        // 3. Verify if the job posting actually exists
-        const jobPosting = await JobPosting.findById(jobPostingId);
-        if (!jobPosting) {
-            return res.status(404).json({
-                message: "Job posting not found. Please provide a valid Job Posting ID.",
-            });
-        }
-
-        let parsedSkills;
-        try {
-            parsedSkills = JSON.parse(skills);
-            if (!Array.isArray(parsedSkills)) {
-                return res.status(400).json({ message: "Skills must be a JSON array string." });
+        // Check if trainingRequirement exists (optional)
+        let training = null;
+        if (trainingRequirement) { 
+            training = await Training.findById(trainingRequirement);
+            if (!training) {
+                return res.status(404).json({ success: false, message: "Training requirement not found" });
             }
-        } catch (parseError) {
-            return res.status(400).json({ message: "Invalid skills format. Must be a valid JSON array string.", error: parseError.message });
         }
 
-        // 4. Create a new job application instance
-        const application = new JobApplication({
-            jobPosting: jobPostingId,
-            applicant: req.user._id, // Assuming req.user._id holds the authenticated applicant's ID
-            resumeUrl: req.file.path, // This path comes from the file upload middleware (e.g., multer + Cloudinary)
-            coverLetter,
-            skills: parsedSkills, // Use the parsed skills array
+        const newPosting = await JobPosting.create({
+            title,
+            company: req.user._id, // logged-in company/instructor
+            description,
+            requirements,
+            skillsRequired,
+            location,
+            deadline,
+            trainingRequirement: training ? training._id : null,
         });
 
-        // 5. Save the new application to the database
-        await application.save();
-
-        // 6. Respond with success
-        res.status(201).json({
-            message: "Job application submitted successfully.",
-            application,
-        });
-
+        res.status(201).json({ success: true, job: newPosting });
     } catch (error) {
-        // Log the detailed error for debugging purposes
-        console.error("Error in submitApplication:", error);
-        // Send a generic error message to the client for security
-        res.status(500).json({
-            message: "An internal server error occurred while submitting the application.",
-            error: error.message,
-        });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -116,7 +82,7 @@ export const getApplicants = async (req, res) => {
         // 3. Check if any applications were found
         if (!applications || applications.length === 0) {
             return res.status(404).json({
-                message: `No applications found for job posting with ID: ${jobId}.`,
+                message: `No applications found for job posting with ID: ${jobId}.`, 
             });
         }
 

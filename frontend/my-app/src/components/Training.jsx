@@ -6,8 +6,6 @@ import { Play } from "lucide-react";
 function Training() {
   const { videos, fetchVideos } = useVideoStore();
               console.log("video", videos);
-
-
   useEffect(() => {
     fetchVideos();
   }, [fetchVideos]);
@@ -43,7 +41,7 @@ function Training() {
             <ul className="space-y-4">
               {videos.map((video) => (
                 <motion.li
-                  key={video.id}
+                  key={video._id}  
                   className="bg-gray-700 p-4 rounded-md shadow-sm"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}

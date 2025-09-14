@@ -22,11 +22,6 @@ const userSchema = new mongoose.Schema({
         required:true,
         minlength: 6,
     },
-    school:{
-        type: String,
-        required:true,
-        trim:true,
-    },
     role:{
         type:String,
         enum: ["undergraduate", "graduate"],

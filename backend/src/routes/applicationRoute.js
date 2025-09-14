@@ -1,5 +1,5 @@
 import express from "express"
-import { underGraduateRoute } from "../middleware/auth.middle.js";
+import { protectRoute, underGraduateRoute } from "../middleware/auth.middle.js";
 import {
     submitApplication,
     getApplicants,
@@ -10,9 +10,9 @@ import {
 const router = express.Router();
 
 
-router.post("/", underGraduateRoute, submitApplication);
+router.post("/job",protectRoute, underGraduateRoute, submitApplication);
 router.get("/job/jobId", getApplicants);
-router.patch("/my-application", updateApplicationStatus)
+router.patch("/my-application", updateApplicationStatus) 
 
 
 export default router;

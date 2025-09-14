@@ -26,6 +26,10 @@ const jobPosting = new mongoose.Schema({
     deadline: {
         type: Date
     },
+    salary: {
+        type: Number,
+        required: true
+    },
     trainingRequirement:{
         type: mongoose.Types.ObjectId,
         ref: "Training"

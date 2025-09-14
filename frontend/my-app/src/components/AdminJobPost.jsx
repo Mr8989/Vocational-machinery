@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Briefcase,
   MapPin,
-  DollarSign,
+  Banknote,
   Calendar,
   Mail,
   Building2,
@@ -16,6 +16,7 @@ import {
   XCircle,
   CheckCircle,
   Search,
+  DollarSign
 } from "lucide-react"; // Icons from lucide-react
 import { useApplicationStore } from "../stores/useApplicationStore"; // Assuming this path is correct
 
@@ -25,8 +26,8 @@ function AdminJobPost() {
     jobPostings,
     loading,
     error,
+    fetchJobPostings,
     createJobPosting,
-    fetchApplications,
     updateJobPosting,
     deleteJobPosting,
   } = useApplicationStore();
@@ -56,10 +57,10 @@ function AdminJobPost() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [postingToDelete, setPostingToDelete] = useState(null);
 
-  // --- Effect to fetch job postings on component mount ---
-  useEffect(() => {
-    fetchApplications();
-  }, [fetchApplications]); // Dependency array ensures it runs once on mount
+  // // --- Effect to fetch job postings on component mount ---
+   useEffect(() => {
+    fetchJobPostings();
+  }, [fetchJobPostings]); // Dependency array ensures it runs once on mount
 
   // --- Effect to populate form when editingPostingId changes ---
   useEffect(() => {
@@ -113,7 +114,6 @@ function AdminJobPost() {
     }
     setSubmissionSuccess(false); // Reset success message on any change
   };
-
   // --- Form validation logic ---
   const validateForm = () => {
     let newErrors = {};
@@ -271,14 +271,14 @@ function AdminJobPost() {
               </motion.div>
             )}
             {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
+               <motion.div
+               initial={{ opacity: 0, y: -10 }}
+                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="bg-red-600 text-white p-3 rounded-md mb-4 flex items-center justify-center"
-              >
-                <XCircle className="h-5 w-5 mr-2" /> Error: {error}
-              </motion.div>
+                className=" text-white p-3 rounded-md mb-4 flex items-center justify-center"
+               >
+                 <XCircle className="h-5 w-5 mr-2" /> Error: {error}
+               </motion.div>
             )}
           </AnimatePresence>
 
@@ -306,7 +306,7 @@ function AdminJobPost() {
                   onChange={handleChange}
                   className="block w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 rounded-md
                                 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="e.g., Senior Software Engineer"
+                  placeholder="e.g., Bachhoe"
                   required
                 />
               </div>
@@ -338,7 +338,7 @@ function AdminJobPost() {
                   onChange={handleChange}
                   className="block w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 rounded-md
                                 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="e.g., Tech Innovations Inc."
+                  placeholder="e.g., Chafas Institute."
                   required
                 />
               </div>
@@ -437,7 +437,7 @@ function AdminJobPost() {
                   onChange={handleChange}
                   className="block w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 rounded-md
                                 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="e.g., Remote, New York, NY"
+                  placeholder="e.g., Greater Accra"
                   required
                 />
               </div>
@@ -456,7 +456,7 @@ function AdminJobPost() {
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <DollarSign
+                  <Banknote
                     className="h-5 w-5 text-gray-400"
                     aria-hidden="true"
                   />
@@ -469,7 +469,7 @@ function AdminJobPost() {
                   onChange={handleChange}
                   className="block w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 rounded-md
                                 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="e.g., $50,000 - $70,000 / year"
+                  placeholder="e.g., GHC5,000 - GHC7,000 / month"
                   required
                 />
               </div>

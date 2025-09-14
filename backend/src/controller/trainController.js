@@ -6,7 +6,7 @@ import "dotenv/config.js"
 //import Video from "../models/training.js"
 
 
-//import pkg from "cloudinary"
+
 
 
 const storage = new GridFsStorage({
@@ -81,21 +81,20 @@ export const createSession = async (req, res) =>{
 };
 export const getAllVideos = async (req, res) => {
     try {
-        const sessions = await Training.find();
+        const videos = await Training.find();
 
         // Flatten out videos from all sessions
-        const videos = sessions.flatMap(session =>
-            session.videos.map(video => ({
-                ...video.toObject(),
-                sessionId: session._id.toString(),
-                instructor: session.instructor,
-                category: session.category,
+        const allVideos = videos.flatMap(session =>
+            session.videos.map(v => ({
+                ...v.toObject(),
+                sessionId: session._id.toString(), // keep track of parent training
             }))
         );
 
+
         res.status(200).json({
             success: true,
-            data: videos,
+            data: allVideos,
         });
     } catch (error) {
         console.error("Error fetching videos:", error);

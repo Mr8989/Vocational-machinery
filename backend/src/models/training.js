@@ -18,7 +18,7 @@ const trainingSchema = new mongoose.Schema({
         enum: ["backhoe", "excavator", "forklift", "longtruck", "crain"], // ✅ consistent
         default: "backhoe"
     },
-    videos: [videoSchema]  
+    videos: [videoSchema]   
 }, { timestamps: true });
 
 const Training = mongoose.model("Training", trainingSchema);

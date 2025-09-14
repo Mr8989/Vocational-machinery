@@ -109,33 +109,6 @@ function Signup() {
                 </div>
               </div>
             </div>
-            {/* <div>
-              <label
-               htmlFor="name"
-               className='block text-sm font-medium text-gray-300'
-               >
-                  School
-              </label>
-              <div className='mt-1 relative rounded-md shadow-sm'> 
-                    <div className='absolute inset-y-0 left-0 pl-3 flex items-center w-full flex-col space-x-2'>
-                    <School 
-                    className='absolute h-5 w-5 left-8 text-gray-400 mt-2'
-                    aria-hidden="true"
-                    />
-                    <input type="text"
-                    id='school'
-                    required
-                    value={formData.school}
-                    onChange={(e) => 
-                      setFormData({...formData, school: e.target.value})
-                    }
-                    className='block w-full px-3 py-2 pl-10 bg-gray-700 rounded-md shadow-sm
-                    placeholder-gray-400 focus-outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm'
-                    placeholder='Name of tertiary institution'
-                    />
-                    </div>
-              </div>
-            </div> */}
             <div>
               <label 
               htmlFor="name"

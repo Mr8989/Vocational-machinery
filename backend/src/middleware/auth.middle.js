@@ -59,6 +59,11 @@ export const isInstructorOrAdmin = async (req, res, next)=> {
 
 
 export const underGraduateRoute = async (req, res, next) => {
+
+    if(!req.user){
+        return res.status(401).json({message: "Not authorized, user missing"})
+    }
+    
     if(req.user.role === "undergraduate"){
         next()
     }
