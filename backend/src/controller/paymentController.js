@@ -20,10 +20,10 @@ export const initializePayment = async (req, res) => {
    // console.log('paymentController.js: Request body:', req.body);
 
     // KoraPay Mobile Money requires email, amount, reference, mobileNumber, and mobileNetwork
-    const { email, amount, reference, selectedCourse, mobileNumber, mobileNetwork } = req.body;
+    const { email, amount, reference, selectedCourse, mobileNumber} = req.body;
 
     // Input validation for KoraPay Mobile Money
-    if (!email || !reference || !amount || !mobileNumber || !mobileNetwork) {
+    if (!email || !reference || !amount || !mobileNumber) {
         return res.status(400).json({ success: false, message: "Email, amount, reference, mobile number, and mobile network are all required." });
     }
 
@@ -47,7 +47,6 @@ export const initializePayment = async (req, res) => {
                 ...req.body.metadata, // Preserve any existing metadata
                 selectedCourse,
                 mobileNumber,
-                mobileNetwork
             },
             status: "pending",
         });
@@ -70,8 +69,8 @@ export const initializePayment = async (req, res) => {
                     // name: "Customer Name" // Optional, if you collect full name in frontend
                 },
                 mobile_money: {
-                    number: mobileNumber,
-                    network: mobileNetwork,
+                    number: mobileNumber.startsWith("233") ? mobileNumber : `233${mobileNumber.replace(/^0/,"")}`,
+                    //network: mobileNetwork.toLowerCase(),
                 },
                 description: `Payment for ${selectedCourse}`,
                 // callback_url: "YOUR_WEBHOOK_URL_HERE", // IMPORTANT: Add your webhook URL for real-time updates
@@ -79,28 +78,35 @@ export const initializePayment = async (req, res) => {
                     selectedCourse,
                     email,
                     mobileNumber,
-                    mobileNetwork,
-                }
+                } 
             }),
         });
 
         const data = await korapayInitRes.json();
         console.log('paymentController.js: KoraPay Initiation Response:', data);
 
+        if(data.status && data.message === "Authorization required"){
+            return res.status(200).json({
+                status: true,
+                message: "Authorization required",
+                data: data.data
+            })
+        }
+
         // Check if KoraPay initialization was NOT successful (status code is not 2xx from KoraPay)
         // Or if KoraPay's internal 'status' is not 'success' or 'processing'
-        if (!korapayInitRes.ok || (data.status !== 'success' && data.status !== 'processing')) {
-            console.error('paymentController.js: KoraPay Initialization Error:', data.message || 'Unknown KoraPay error');
-            await Payment.findOneAndUpdate(
-                { reference: reference },
-                { $set: { status: "failed_korapay_init", korapayData: data, updatedAt: Date.now() } }, // Store full error data
-                { new: true }
-            );
-            return res.status(korapayInitRes.status || 500).json({ // Return KoraPay's status code or 500
-                success: false,
-                message: data.message || "Failed to initialize transaction with KoraPay."
-            });
-        }
+        // if (!korapayInitRes.ok || (data.status !== 'success' && data.status !== 'processing')) {
+        //     console.error('paymentController.js: KoraPay Initialization Error:', data.message || 'Unknown KoraPay error');
+        //     await Payment.findOneAndUpdate(
+        //         { reference: reference },
+        //         { $set: { status: "failed_korapay_init", korapayData: data, updatedAt: Date.now() } }, // Store full error data
+        //         { new: true }
+        //     );
+        //     return res.status(korapayInitRes.status || 500).json({ // Return KoraPay's status code or 500
+        //         success: false,
+        //         message: data.message || "Failed to initialize transaction with KoraPay."
+        //     });
+        // }
 
         // If KoraPay initialization was successful or processing
         // 3. Update transaction in DB with KoraPay's response
@@ -227,3 +233,65 @@ export const verifyPayment = async (req, res) => {
         res.status(500).json({ success: false, message: 'Internal server error during payment verification.' });
     }
 };
+
+// Authorize payment with OTP
+export const authorizePayment = async (req, res) => {
+    const SECRET_KEY = req.app.get("KORAPAY_SECRET_KEY");
+    const { transactionReference, otp } = req.body;
+
+    if (!transactionReference || !otp) {
+        return res.status(400).json({
+            success: false,
+            message: "Transaction reference and OTP are required.",
+        });
+    }
+
+    try {
+        // Send OTP to KoraPay for authorization
+        const korapayRes = await fetch(
+            `${KORAPAY_API_BASE_URL}/charges/mobile-money/authorize`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${SECRET_KEY}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    transaction_reference: transactionReference,
+                    otp,
+                }),
+            }
+        );
+
+        const data = await korapayRes.json();
+        console.log("paymentController.js: KoraPay OTP Authorization Response:", data);
+
+        // Update your DB with the result
+        await Payment.findOneAndUpdate(
+            { "korapayData.transaction_reference": transactionReference },
+            { $set: { status: data.status, korapayData: data, updatedAt: Date.now() } },
+            { new: true }
+        );
+
+        if (!korapayRes.ok || data.status !== "success") {
+            return res.status(400).json({
+                success: false,
+                message: data.message || "OTP authorization failed",
+                data,
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Payment authorized successfully",
+            data,
+        });
+    } catch (error) {
+        console.error("paymentController.js: Error during OTP authorization:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error during OTP authorization", 
+        });
+    }
+};
+

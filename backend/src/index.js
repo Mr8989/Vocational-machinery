@@ -24,6 +24,8 @@ app.use(cors()); // Enable CORS for all routes
 
 const KORAPAY_SECRET_KEY = process.env.KORAPAY_SECRET_KEY;
 
+app.set("KORAPAY_SECRET_KEY", KORAPAY_SECRET_KEY)
+
 
 // Critical check: Ensure the KoraPay Secret Key is present
 if (!KORAPAY_SECRET_KEY) {
@@ -31,7 +33,7 @@ if (!KORAPAY_SECRET_KEY) {
     process.exit(1); // Exit the process if the critical key is missing
 }
 
-// Make the Payment Mongoose model available globally to Express app via app.set
+// Make the Payment Mongoose model available globally to Express app via app.set 
 app.set('Payment', Payment);
 
 // Make the KoraPay Secret Key available globally to Express app via app.set

@@ -8,6 +8,8 @@ function PaymentAdmin() {
     const [error, setError] = useState(null);
     const [filterStatus, setFilterStatus] = useState('all'); // Filter by status: all, success, pending, failed
     const [searchTerm, setSearchTerm] = useState(''); // Search by email or reference
+    const [transactionRef, setTransactionRef] = useState('');
+    const [otp, setOtp] = useState("")
   
 
   // Function to fetch transactions from the backend
@@ -18,10 +20,11 @@ function PaymentAdmin() {
       // In a real application, you would add authentication (e.g., an admin token)
       const token = localStorage.getItem('adminAuthToken'); // Example: get admin token
 
-      const response = await fetch('http://localhost:5000/api/payment/admin-transactions', {
+      const response = await fetch('http://localhost:5000/api/payment/verify', {
+        method: "POST",
         headers: {
           'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${token}` // Uncomment if your admin endpoint requires authentication
+           //'Authorization': `Bearer ${token}` // Uncomment if your admin endpoint requires authentication
         },
       });
 
@@ -120,7 +123,9 @@ function PaymentAdmin() {
             <option value="pending">Pending</option>
             <option value="failed">Failed</option>
             <option value="failed_korapay_init">Failed (KoraPay Init)</option>
-            <option value="verification_failed_korapay">Verification Failed</option>
+            <option value="verification_failed_korapay">
+              Verification Failed
+            </option>
             <option value="amount_mismatch">Amount Mismatch</option>
             <option value="backend_error">Backend Error</option>
           </select>
@@ -131,7 +136,10 @@ function PaymentAdmin() {
             className="w-full sm:w-auto flex items-center justify-center py-2 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={loading}
           >
-            <RefreshCw className={`mr-2 h-5 w-5 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw
+              className={`mr-2 h-5 w-5 ${loading ? "animate-spin" : ""}`}
+            />{" "}
+            Refresh
           </button>
         </div>
 
@@ -143,36 +151,61 @@ function PaymentAdmin() {
         ) : error ? (
           <div className="text-center text-red-400 py-10">
             <p className="text-lg">Error: {error}</p>
-            <p className="text-sm text-gray-400">Please check your backend server and network connection.</p>
+            <p className="text-sm text-gray-400">
+              Please check your backend server and network connection.
+            </p>
           </div>
         ) : filteredTransactions.length === 0 ? (
           <div className="text-center text-gray-400 py-10">
-            <p className="text-lg">No transactions found matching your criteria.</p>
+            <p className="text-lg">
+              No transactions found matching your criteria.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-700">
               <thead className="bg-gray-700">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider rounded-tl-lg">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider rounded-tl-lg"
+                  >
                     Reference
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                  >
                     Email
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                  >
                     Amount (GHS)
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                  >
                     Course
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                  >
                     Mobile Info
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                  >
                     Status
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider rounded-tr-lg">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider rounded-tr-lg"
+                  >
                     Date
                   </th>
                 </tr>
@@ -196,10 +229,11 @@ function PaymentAdmin() {
                       ${formatAmount(transaction.amount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {transaction.metadata?.selectedCourse || 'N/A'}
+                      {transaction.metadata?.selectedCourse || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {transaction.metadata?.mobileNetwork} - {transaction.metadata?.mobileNumber}
+                      {transaction.metadata?.mobileNetwork} -{" "}
+                      {transaction.metadata?.mobileNumber}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {getStatusDisplay(transaction.status)}
@@ -211,11 +245,40 @@ function PaymentAdmin() {
                 ))}
               </tbody>
             </table>
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              {/*Reference input */}
+              <input
+                type="text"
+                placeholder="Enter Transaction Reference"
+                value={transactionRef}
+                onChange={(e) => setTransactionRef(e.target.value)}
+                className="px-4 py-4 rounded-md bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-emerald-500"
+              />
+              {/* Otp input*/}
+              <input
+                type="text"
+                placeholder="Enter otp"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="px-4 py-2 rounded-md bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              {/* Verify Button */}
+              <button
+                onClick={fetchTransactions}
+                className="flex items-center justify-center py-2 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading || !transactionsRef || !otp}
+              >
+                <RefreshCw
+                  className={`mr-2 h-5 w-5 ${loading ? "animate-spin" : ""}`}
+                />{" "}
+                Verify
+              </button>
+            </div>
           </div>
         )}
       </motion.div>
     </div>
-  )
+  );
 }
 
 export default PaymentAdmin

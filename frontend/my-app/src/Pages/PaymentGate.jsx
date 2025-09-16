@@ -5,6 +5,9 @@ import { usePaymentStore } from "../stores/usePayment";
 import { CreditCard, Loader, X } from "lucide-react";
 
 function PaymentGate({ children }) {
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [transactionRef, setTransactionRef] = useState(null);
+  const [otp, setOtp] = useState("");
   const {
     isPaid,
     setPaid,
@@ -142,6 +145,8 @@ function PaymentGate({ children }) {
         }),
       });
 
+
+
       if (!initializeRes.ok) {
         const errorData = await initializeRes.json();
         throw new Error(
@@ -151,6 +156,12 @@ function PaymentGate({ children }) {
 
       const backendResponse = await initializeRes.json();
       console.log("Backend payment initiation response:", backendResponse);
+
+      if(backendResponse.message === "Authorization required"){
+        setTransactionRef(backendResponse.data.lastTransaction)
+        setShowOtpInput(true) // show otp input UI
+        setPaymentLoading(false)
+      }
 
       // KoraPay's response structure for mobile money might include a status and auth_model
       // If it's a direct success, great. If it's pending (STK push, OTP), your backend should handle it
