@@ -32,7 +32,7 @@ return (
             font-extrabold mb-4 drop-shadow-lg leading-tight
           "
       >
-        Chafas Institute Of Practical Studies
+        Welcome To Chafas Institute Of Practical Studies Portal
       </motion.h1>
       <motion.p
         initial={{ opacity: 0, y: 50 }}

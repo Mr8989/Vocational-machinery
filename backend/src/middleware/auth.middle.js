@@ -53,7 +53,7 @@ export const isInstructorOrAdmin = async (req, res, next)=> {
             next();
         } catch (err) {
             res.status(401).json({ message: "Invalid token" }); 
-            console.log("JWT Verification", err.message)
+            console.log("JWT Verification", err.message) 
         }
   };
 
