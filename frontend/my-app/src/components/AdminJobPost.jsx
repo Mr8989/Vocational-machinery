@@ -244,7 +244,7 @@ function AdminJobPost() {
           transition={{ duration: 0.8 }}
         >
           <h2 className="text-3xl font-bold mb-6 text-emerald-400 text-center">
-            {editingPostingId ? "Edit Job Posting" : "Create New Job Posting"}
+            {editingPostingId ? "Edit Job Posting" : "Create New Attachment Posting"}
           </h2>
 
           <AnimatePresence>
@@ -255,7 +255,7 @@ function AdminJobPost() {
                 exit={{ opacity: 0, y: -10 }}
                 className="bg-green-600 text-white p-3 rounded-md mb-4 flex items-center justify-center"
               >
-                <CheckCircle className="h-5 w-5 mr-2" /> Job Posting created
+                <CheckCircle className="h-5 w-5 mr-2" /> Attachment Posting created
                 successfully!
               </motion.div>
             )}

@@ -194,7 +194,7 @@ function ApplicationForms() {
         transition={{ duration: 0.8 }}
       >
         <h2 className="text-3xl font-bold mb-6 text-emerald-400 text-center">
-          Apply for Training
+          Apply for Attachment 
         </h2>
 
         {submissionSuccess && (

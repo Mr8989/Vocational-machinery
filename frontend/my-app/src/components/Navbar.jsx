@@ -66,7 +66,7 @@ function Navbar() {
                 to={"/graduate"}
               >
                 <Briefcase className="inline-block mr-1" size={18}/>
-                <span className="hidden sm:inline">Job Application</span>
+                <span className="hidden sm:inline">Attachment</span>
               </Link>
             )}
             <Link to={"/payment"}
